@@ -154,3 +154,7 @@ print('After', n.query(X))
 # Before: [[0.60018041 0.60921318 0.74879427 0.72999071]]
 # After [[0.02426062 0.98082423 0.97728005 0.01916943]]
 ```
+
+
+## Credit
+I do not claim Credit for this code or the code in Nannon, that code was provided for this project
