@@ -1,5 +1,7 @@
 import numpy as np
 import scipy.special
+import torch
+import torch.nn as torchNN
 
 # A few useful resources:
 #
@@ -23,7 +25,6 @@ class ScratchNetwork:
     def __init__(self, n_input, n_hidden, n_output, learning_rate=0.3):
         # Set number of nodes in each input, hidden, output layer
         self.n_input = n_input
-        self.ID= time.time() #my own addtion to create a tag for each net, just in case
         self.n_hidden = n_hidden
         self.n_output = n_output
 
@@ -53,7 +54,6 @@ class ScratchNetwork:
         # First convert inputs and targets lists to 2d arrays.
         inputs = np.array(inputs_list, ndmin=2).T
         targets = np.array(targets_list, ndmin=2).T
-
         # Step 1: FEED-FORWARD to get outputs
 
         # Calculate signals into hidden layer.
@@ -110,3 +110,28 @@ class ScratchNetwork:
         # Calculate the signals emerging from final output layer.
         final_outputs = sigmoid(final_inputs)
         return final_outputs
+
+# input_nodes = 2
+# hidden_nodes = 6
+# output_nodes = 1
+# learning_rate = 0.3
+#
+# Creates an instance of the scratch neural network.
+# Here we teach it how to produce correct "XOR" output.
+# n = ScratchNetwork(input_nodes, hidden_nodes, output_nodes, learning_rate)
+# X = [[0,0],
+#      [0,1],
+#      [1,0],
+#      [1,1]]
+# y = [[0],
+#      [1],
+#      [1],
+#      [0]]
+#
+# print('Before:', n.query(X))
+# for _ in range(5000):
+#     n.train(X, y)
+# print('After', n.query(X))
+
+# Before: [[0.60018041 0.60921318 0.74879427 0.72999071]]
+# After [[0.02426062 0.98082423 0.97728005 0.01916943]]
