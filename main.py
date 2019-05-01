@@ -185,7 +185,7 @@ class MenacePlayerC:
         moveList = explore()
         checkerList =[]
         for x in range(3):
-            for y in range(3):
+            for y in range(20):
                 checkerList.append(x)
         self.boxCollection = dict()
         for state in moveList:
@@ -298,7 +298,7 @@ class MenacePlayerC:
 def exampleOfBoxNN():
     d = MenacePlayerC()
     d.trainBox(100000)
-    print(play_tourn(d.publicMenacePlayer,rand_play))
+    print(play_tourn(d.publicMenacePlayer,valuePlayerC().valuePlayer))
     with open('boxes.txt','w') as out:
         for x in d.boxCollection:
             out.write(str(x))
