@@ -1,6 +1,7 @@
 from nannon import *
-import pickle
 from scratch_nn import *
+from hillClimb_NN import *
+import pickle
 import random
 from tqdm import tqdm
 
@@ -161,7 +162,6 @@ def testTDNET():
 #           Still means they are hard to gauge
 #input determines number of iterations of training shown, each training session trains in a 1000 round tourney 10 times
 def testTD(n=1):
-    pass
     net = TD_NET()
     table = pickle.load(open('nannon/mediocre_table.p', 'rb'))
     for x in range(n):
@@ -185,7 +185,7 @@ class MenacePlayerC:
         moveList = explore()
         checkerList =[]
         for x in range(3):
-            for y in range(20):
+            for y in range(10):
                 checkerList.append(x)
         self.boxCollection = dict()
         for state in moveList:
@@ -202,9 +202,7 @@ class MenacePlayerC:
         # condition for if no move possible
         if legalMoves[0] == -1:
             return make_move(pos,-1,roll)
-        if(len(checkerList)==0):
-            print("CHECKER LIST IS EMPTY->fix?")
-            print(pos,roll)
+
         possibleMove = -1
         # get a legal move from the box
         while(not moveFound and len(checkerList)>0):
@@ -260,7 +258,7 @@ class MenacePlayerC:
                 # get matching box for a position
                 box = self.boxCollection[pos][roll]
                 # add three of each choice made
-                for x in range(3):
+                for x in range(2):
                     # for each choice add coresponing pebble to box
                     for move in self.moveCollection[pos][roll]:
                         box.append(move)
@@ -298,7 +296,8 @@ class MenacePlayerC:
 def exampleOfBoxNN():
     d = MenacePlayerC()
     d.trainBox(100000)
-    print(play_tourn(d.publicMenacePlayer,valuePlayerC().valuePlayer))
+    # print(play_tourn(d.publicMenacePlayer,valuePlayerC().valuePlayer))
+    print(play_tourn(d.publicMenacePlayer,rand_play,100000))
     with open('boxes.txt','w') as out:
         for x in d.boxCollection:
             out.write(str(x))
@@ -309,6 +308,29 @@ def exampleOfBoxNN():
                 out.write(str(d.boxCollection[x][y]))
                 out.write("\n")
 exampleOfBoxNN()
+
+
+
+# hill climber
+# NOTE: Steps
+# 1: set up empty net
+# 2: set up mutated net
+# 3: set up mating between them
+class hillClimbC:
+    def __init__(self):
+        self.nn = hillClimb(3,6,1)
+
+    def train(self,nGens = 100):
+        for x in range(nGens):
+            mutatedNet = self.nn.getMutation()
+            winner = play_tourn(netPlayerC(mutatedNet).netPlayer,netPlayerC(self.nn).netPlayer)
+            if winner == "first":
+                self.nn = mutatedNet
+
+
+hc = hillClimbC()
+hc.train()
+print(play_tourn(netPlayerC(hc.nn)))
 # # def basicNN(pos,roll):
 # q = nn.query(target)
 # print(q[0][0])
