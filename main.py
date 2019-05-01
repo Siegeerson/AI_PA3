@@ -87,7 +87,7 @@ class mimMaxNNPlayerC:
 # is TD Gameon
 class TD_NET:
     def __init__(self):
-        self.nn = ScratchNetwork(3,6,1)
+        self.nn = ScratchNetwork(3,8,1)
         self.trainNN = None
         self.moves = []
         self.start = False
@@ -95,15 +95,16 @@ class TD_NET:
 
     def trainOnMoves(self,win):
         # impliment decay rate
-        dec = .7 #decay rate
-        trainVal = 5
+        dec = .5 #decay rate
+        trainVal = 10
         if not win:
-            trainVal = -1
+            trainVal = -10
         for x in range(len(self.moves)):#trend towards winning positions
             finalTrainval= dec**(len(self.moves)-(x+1)) * trainVal
             self.nn.train(self.moves[x],finalTrainval)
         self.moves = []
 
+# TODO: Fix so the trianing gaurentees that it actually knows when it wins or loses
     def TD_NetTrainPlay(self,pos,roll):
         if not self.start:
             self.start = True
@@ -134,17 +135,25 @@ class TD_NET:
         if not self.trainNN:
             self.trainNN = TD_NET() #setts up training partner
         for x in tqdm(range(n)):
-            play_tourn(self.TD_NetTrainPlay,self.trainNN.TD_NetTrainPlay)
+            play_tourn(self.TD_NetTrainPlay,valuePlayerC().valuePlayer)#test training against value
         return self.nn
 #
 #
 
-
-a = TD_NET()
-a.train_Net()
-print(play_tourn(netPlayerC(a.nn).netPlayer,valuePlayerC().valuePlayer))
-a.train_Net(4)
-print(play_tourn(netPlayerC(a.nn).netPlayer,valuePlayerC().valuePlayer))
+def testTDNET():
+    a = TD_NET()
+    a.train_Net()
+    print(play_tourn(netPlayerC(a.nn).netPlayer,valuePlayerC().valuePlayer))
+    a.train_Net(20)
+    print(play_tourn(netPlayerC(a.nn).netPlayer,valuePlayerC().valuePlayer,20000))
+    a.train_Net(20)
+    print(play_tourn(netPlayerC(a.nn).netPlayer,valuePlayerC().valuePlayer,20000))
+    a.train_Net(20)
+    print(play_tourn(netPlayerC(a.nn).netPlayer,valuePlayerC().valuePlayer,20000))
+    a.train_Net(20)
+    print(play_tourn(netPlayerC(a.nn).netPlayer,valuePlayerC().valuePlayer,20000))
+    a.train_Net(20)
+    print(play_tourn(netPlayerC(a.nn).netPlayer,valuePlayerC().valuePlayer,20000))
 
 ## NOTE:    Weights seem to be wierd and random
 #           however values most likely stand in comparison to each other
@@ -165,23 +174,141 @@ def testTD(n=1):
 
 
 
-# hillclimb/mutation
+# Matchbox
+# NOTE: Steps
+# 1 use explore function to build map
+# 2 fill each box with 3 beads of each number 1-6
+# 3 hash map of each position and each move chosen
+# at win or loose go back through hash of moves chosen and either add or delete
+class MenacePlayerC:
+    def __init__(self):
+        moveList = explore()
+        checkerList =[]
+        for x in range(3):
+            for y in range(3):
+                checkerList.append(x)
+        self.boxCollection = dict()
+        for state in moveList:
+            self.boxCollection[state] = dict()
+            # account for dice rolls
+            for roll in range(1,7):
+                self.boxCollection[state][roll] = checkerList[:]#copy
+        self.moveCollection = dict()
+
+    def MenacePlayer(self,pos,roll):
+        checkerList = self.boxCollection[pos][roll][:]
+        moveFound = False
+        legalMoves = legal_moves(pos,roll)
+        # condition for if no move possible
+        if legalMoves[0] == -1:
+            return make_move(pos,-1,roll)
+        if(len(checkerList)==0):
+            print("CHECKER LIST IS EMPTY->fix?")
+            print(pos,roll)
+        possibleMove = -1
+        # get a legal move from the box
+        while(not moveFound and len(checkerList)>0):
+            possibleMove= random.choice(checkerList)
+            if possibleMove in legalMoves:
+                moveFound = True
+            else:
+                checkerList.remove(possibleMove)
+                # should terminate
+        if(not moveFound):
+            possibleMove = random.choice(legalMoves)
+        # add chosen move to list of moves taken
+        moveList = []
+        if not pos in self.moveCollection:
+            self.moveCollection[pos] = dict()
+        if  roll in self.moveCollection[pos]:
+            moveList = self.moveCollection[pos][roll]
+        moveList.append(possibleMove)
+        self.moveCollection[pos][roll] = moveList
+        return make_move(pos,possibleMove,roll)
+
+    def publicMenacePlayer(self,pos,roll):
+        checkerList = self.boxCollection[pos][roll][:]
+        moveFound = False
+        legalMoves = legal_moves(pos,roll)
+        # condition for if no move possible
+        if legalMoves[0] == -1:
+            return make_move(pos,-1,roll)
+        possibleMove = -1
+        # get a legal move from the box
+        while(not moveFound and len(checkerList)>0):
+            possibleMove= random.choice(checkerList)
+            if possibleMove in legalMoves:
+                moveFound = True
+            else:
+                checkerList.remove(possibleMove)
+                # should terminate
+        if(not moveFound):
+            possibleMove = random.choice(legalMoves)
+        return make_move(pos,possibleMove,roll)
+
+    def trainBox(self,games=10000,opp=valuePlayerC().valuePlayer):
+        for x in tqdm(range(games)):
+            winner = play_game(self.MenacePlayer,opp)
+            if winner == "first":
+                self.trainWin()
+            else:
+                self.trainLose()
+    def trainWin(self):
+        # get postions from game
+        for pos in self.moveCollection:
+            for roll in self.moveCollection[pos]:
+                # get matching box for a position
+                box = self.boxCollection[pos][roll]
+                # add three of each choice made
+                for x in range(3):
+                    # for each choice add coresponing pebble to box
+                    for move in self.moveCollection[pos][roll]:
+                        box.append(move)
+                # update box
+                box.sort()
+                self.boxCollection[pos][roll] = box
+                # print(self.boxCollection[pos])
+        # clear collection of moves
+        self.moveCollection = dict()
 
 
+    def trainLose(self):
+        for pos in self.moveCollection:
+            for roll in self.moveCollection[pos]:
+                # get matching box for a position
+                box = self.boxCollection[pos][roll]
+                # for each choice add coresponing pebble to box
+                for move in self.moveCollection[pos][roll]:
+                    og = len(box)
+                    # remove checker from box
+                    if move in box:
+                        box.remove(move)
 
+                # update box
+                self.boxCollection[pos][roll] = box
+            # clear collection of moves
+        self.moveCollection = dict()
 
-
-
-
-
-
-
-
-
-
-
-
-
+# example of how box nn works
+# not viable at low repetitions about the same as random
+# most likely bad since it does not (currently) accuount for dice rolls just positions
+# a better player could possibly be made by nesting
+# UPDATE: after nesting dicts did not get better (when training for 100000 games)
+# interesting that it does seem to teach itself what moves are impossible given a situation
+def exampleOfBoxNN():
+    d = MenacePlayerC()
+    d.trainBox(100000)
+    print(play_tourn(d.publicMenacePlayer,rand_play))
+    with open('boxes.txt','w') as out:
+        for x in d.boxCollection:
+            out.write(str(x))
+            out.write("\n")
+            for y in d.boxCollection[x]:
+                out.write(str(y))
+                out.write("\n")
+                out.write(str(d.boxCollection[x][y]))
+                out.write("\n")
+exampleOfBoxNN()
 # # def basicNN(pos,roll):
 # q = nn.query(target)
 # print(q[0][0])
