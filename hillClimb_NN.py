@@ -46,10 +46,10 @@ class hillClimb:
 
     def getMutation(self):
         mutih = np.random.uniform(-.01,.01,(self.n_hidden, self.n_input))
-        mutho = np.random.uniform(-.01,.01,(self.n_hidden, self.n_input))
-        newNN = ScratchNetwork(self.n_input,self.n_hidden,self.n_output)
-        newNN.weights_ih = self.weights_ih*mutih
-        newNN.weights_ho = self.weights_ho*mutho
+        mutho = np.random.uniform(-.01,.01,(self.n_output, self.n_hidden))
+        newNN = hillClimb(self.n_input,self.n_hidden,self.n_output)
+        newNN.weights_ih = self.weights_ih+mutih
+        newNN.weights_ho = self.weights_ho+mutho
         return newNN
 
 

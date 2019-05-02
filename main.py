@@ -53,7 +53,7 @@ class netPlayerC:
 # a 1 deep min max tree
 # possible score calculated with a NN
 #pieces^2 * DICE
-class mimMaxNNPlayerC:
+class minMaxNNPlayerC:
     def __init__(self,net):
         self.nn=net
 
@@ -97,9 +97,9 @@ class TD_NET:
     def trainOnMoves(self,win):
         # impliment decay rate
         dec = .5 #decay rate
-        trainVal = 10
+        trainVal = -10
         if not win:
-            trainVal = -10
+            trainVal = 10
         for x in range(len(self.moves)):#trend towards winning positions
             finalTrainval= dec**(len(self.moves)-(x+1)) * trainVal
             self.nn.train(self.moves[x],finalTrainval)
@@ -132,29 +132,20 @@ class TD_NET:
         return best_move
 
     def train_Net(self,n = 1):
-        print("INIT LEARN")
+        # print("INIT LEARN")
         if not self.trainNN:
             self.trainNN = TD_NET() #setts up training partner
-        for x in tqdm(range(n)):
-            play_tourn(self.TD_NetTrainPlay,valuePlayerC().valuePlayer)#test training against value
+        for x in range(n):
+            play_tourn(self.TD_NetTrainPlay,self.trainNN.TD_NetTrainPlay)#test training against value
         return self.nn
 #
 #
 
 def testTDNET():
     a = TD_NET()
-    a.train_Net()
-    print(play_tourn(netPlayerC(a.nn).netPlayer,valuePlayerC().valuePlayer))
-    a.train_Net(20)
-    print(play_tourn(netPlayerC(a.nn).netPlayer,valuePlayerC().valuePlayer,20000))
-    a.train_Net(20)
-    print(play_tourn(netPlayerC(a.nn).netPlayer,valuePlayerC().valuePlayer,20000))
-    a.train_Net(20)
-    print(play_tourn(netPlayerC(a.nn).netPlayer,valuePlayerC().valuePlayer,20000))
-    a.train_Net(20)
-    print(play_tourn(netPlayerC(a.nn).netPlayer,valuePlayerC().valuePlayer,20000))
-    a.train_Net(20)
-    print(play_tourn(netPlayerC(a.nn).netPlayer,valuePlayerC().valuePlayer,20000))
+    for x in range(10):
+        print(play_tourn(netPlayerC(a.nn).netPlayer,rand_play))
+        a.train_Net(2)
 
 ## NOTE:    Weights seem to be wierd and random
 #           however values most likely stand in comparison to each other
@@ -185,7 +176,7 @@ class MenacePlayerC:
         moveList = explore()
         checkerList =[]
         for x in range(3):
-            for y in range(10):
+            for y in range(5):
                 checkerList.append(x)
         self.boxCollection = dict()
         for state in moveList:
@@ -223,7 +214,7 @@ class MenacePlayerC:
         moveList.append(possibleMove)
         self.moveCollection[pos][roll] = moveList
         return make_move(pos,possibleMove,roll)
-
+    # public facing play method
     def publicMenacePlayer(self,pos,roll):
         checkerList = self.boxCollection[pos][roll][:]
         moveFound = False
@@ -245,7 +236,7 @@ class MenacePlayerC:
         return make_move(pos,possibleMove,roll)
 
     def trainBox(self,games=10000,opp=valuePlayerC().valuePlayer):
-        for x in tqdm(range(games)):
+        for x in range(games):
             winner = play_game(self.MenacePlayer,opp)
             if winner == "first":
                 self.trainWin()
@@ -295,9 +286,10 @@ class MenacePlayerC:
 # interesting that it does seem to teach itself what moves are impossible given a situation
 def exampleOfBoxNN():
     d = MenacePlayerC()
-    d.trainBox(100000)
-    # print(play_tourn(d.publicMenacePlayer,valuePlayerC().valuePlayer))
-    print(play_tourn(d.publicMenacePlayer,rand_play,100000))
+    for x in range (10):
+        d.trainBox(10000)
+        print(play_tourn(d.publicMenacePlayer,rand_play))
+    # print(play_tourn(d.publicMenacePlayer,rand_play,1000))
     with open('boxes.txt','w') as out:
         for x in d.boxCollection:
             out.write(str(x))
@@ -307,7 +299,7 @@ def exampleOfBoxNN():
                 out.write("\n")
                 out.write(str(d.boxCollection[x][y]))
                 out.write("\n")
-exampleOfBoxNN()
+# exampleOfBoxNN()
 
 
 
@@ -318,19 +310,27 @@ exampleOfBoxNN()
 # 3: set up mating between them
 class hillClimbC:
     def __init__(self):
-        self.nn = hillClimb(3,6,1)
+        self.nn = hillClimb(3,5,1)
+        print(self.nn.weights_ho)
 
-    def train(self,nGens = 100):
-        for x in range(nGens):
+    def train(self,nGens = 1000):
+        climbHist=[]
+        for x in tqdm(range(nGens)):
             mutatedNet = self.nn.getMutation()
-            winner = play_tourn(netPlayerC(mutatedNet).netPlayer,netPlayerC(self.nn).netPlayer)
-            if winner == "first":
+            # print(self.nn.weights_ho,mutatedNet.weights_ho)
+            mutWin = play_tourn(netPlayerC(mutatedNet).netPlayer,netPlayerC(self.nn).netPlayer,500,100)
+            if mutWin > .5:
                 self.nn = mutatedNet
+                print("CHANGE",mutWin)
+            climbHist.append(play_tourn(netPlayerC(self.nn).netPlayer,rand_play,500,100))
 
+        return climbHist
 
-hc = hillClimbC()
-hc.train()
-print(play_tourn(netPlayerC(hc.nn)))
+def testClimb()
+    hc = hillClimbC()
+    climbH = hc.train(30)
+    print(climbH)
+
 # # def basicNN(pos,roll):
 # q = nn.query(target)
 # print(q[0][0])
